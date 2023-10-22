@@ -21,10 +21,6 @@ contract RockPaperScissorsTest is Test {
     // this is acceptable for testing purposes
     bytes32 constant SALT = bytes32(keccak256("0x010203040506070809"));
 
-    // players' bet choices
-    Bet constant BET_1 = Bet.Paper;
-    Bet constant BET_2 = Bet.Scissors;
-
     // without events redefined here I get a compilation error:
     // Internal exception in StandardCompiler::compile: C:\Users\circleci\project\libsolidity\interface\Natspec.cpp(89):
     //   Throw in function class Json::Value __cdecl solidity::frontend::Natspec::userDocumentation(const class solidity::frontend::ContractDefinition &)
@@ -109,7 +105,7 @@ contract RockPaperScissorsTest is Test {
         vm.expectRevert(RockPaperScissors.Duplicate.selector);
         rps.placeBet(_hash(Bet.Rock, SALT));     
 
-        // cannot reveal bet if a second player did place the bet yet
+        // cannot reveal bet if a second player did not place the bet yet
         vm.expectRevert(RockPaperScissors.AwaitingBets.selector);
         rps.revealBet(bet1, SALT);
 
@@ -229,7 +225,11 @@ contract RockPaperScissorsTest is Test {
         assertEq(token.balanceOf(address(rps)), 0, "incorrect final balance of the contract");
     }
 
-    function test_withdrawal_BettingPhase() public {
+    function test_withdrawal_BettingPhase(uint256 ubet1) public {
+        vm.assume(uint256(ubet1) < 3);
+
+        Bet bet1 = Bet(ubet1);
+
         // initial balance
         uint256 balance1 = token.balanceOf(PLAYER_1);
 
@@ -238,15 +238,16 @@ contract RockPaperScissorsTest is Test {
         rps.withdraw();
 
         vm.prank(PLAYER_1);
-        rps.placeBet(_hash(BET_1, SALT));
+        rps.placeBet(_hash(bet1, SALT));
 
+        // time hasn't passed yet
         vm.prank(PLAYER_1);
         vm.expectRevert(RockPaperScissors.TooEarly.selector);
         rps.withdraw();
 
         vm.warp(ROUND_TIMEOUT + 1); // moving timestamp so withdrawal is possible now
 
-        // only players
+        // only players can withdraw
         vm.prank(PLAYER_2);
         vm.expectRevert(RockPaperScissors.NotAPlayer.selector);
         rps.withdraw();
@@ -266,16 +267,21 @@ contract RockPaperScissorsTest is Test {
         rps.players(0);
     }
 
-    function test_withdrawal_RevealingPhase() public {
+    function test_withdrawal_RevealingPhase(uint256 ubet1, uint256 ubet2) public {
+        vm.assume(uint256(ubet1) < 3 && uint256(ubet2) < 3);
+
+        Bet bet1 = Bet(ubet1);
+        Bet bet2 = Bet(ubet2);
+
         // initial balances
         uint256 balance1 = token.balanceOf(PLAYER_1);
         uint256 balance2 = token.balanceOf(PLAYER_2);
 
         vm.prank(PLAYER_1);
-        rps.placeBet(_hash(BET_1, SALT));
+        rps.placeBet(_hash(bet1, SALT));
 
         vm.prank(PLAYER_2);
-        rps.placeBet(_hash(BET_2, SALT));
+        rps.placeBet(_hash(bet2, SALT));
 
         vm.prank(PLAYER_2);
         vm.expectRevert(RockPaperScissors.TooEarly.selector);
@@ -294,7 +300,7 @@ contract RockPaperScissorsTest is Test {
 
         // one player reveals
         vm.prank(PLAYER_1);
-        rps.revealBet(BET_1, SALT);
+        rps.revealBet(bet1, SALT);
 
         // time not passed after reveal hence it is not possible to withdraw
         vm.prank(PLAYER_1);

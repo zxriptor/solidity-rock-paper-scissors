@@ -18,6 +18,11 @@
 
 ### Usage
 
+#### Init Git Submodules
+```
+$ git submodule update --init --recursive
+```
+
 #### Build
 
 ```shell

@@ -69,16 +69,13 @@ contract RockPaperScissors {
         if (players.length == 2) revert BettingDone();
         if (players.length == 1 && players[0].addr == msg.sender) revert Duplicate();
 
-        Player memory player;
-        player.addr = msg.sender;
-        player.betHash = betHash;
+        Player memory player = Player({ addr: msg.sender, betHash: betHash });
         players.push(player);
 
         lastTimestamp = block.timestamp;
-
-        bettingToken.safeTransferFrom(msg.sender, address(this), bettingAmount);
-
+        
         emit BetPlaced(msg.sender, betHash);
+        bettingToken.safeTransferFrom(msg.sender, address(this), bettingAmount);
     }
 
     /// @notice Once both players entered the round, they can reveal their bets.
@@ -114,19 +111,18 @@ contract RockPaperScissors {
                 bet2 = bet;
             }
 
-            // we can safely cleanup the state now, as storage variables are not used anymore
             _cleanup();
 
             (bool isDraw, uint256 winnerIdx) = _determineWinner(bet1, bet2);
             if (isDraw) {
                 // no winner - everyone gets his betting amount
+                emit RoundCompleted(address(0), bet1, bet2);
                 bettingToken.safeTransfer(_players[0].addr, bettingAmount);
                 bettingToken.safeTransfer(_players[1].addr, bettingAmount);
-                emit RoundCompleted(address(0), bet1, bet2);
             } else {
                 // winner gets both shares
-                bettingToken.safeTransfer(_players[winnerIdx - 1].addr, bettingAmount * 2);
                 emit RoundCompleted(_players[winnerIdx - 1].addr, bet1, bet2);
+                bettingToken.safeTransfer(_players[winnerIdx - 1].addr, bettingAmount * 2);
             }
         } else {
             revealedBet.addr = msg.sender;
@@ -145,20 +141,20 @@ contract RockPaperScissors {
         (Player memory player, ) = _findPlayer(msg.sender, _players);
         if (player.addr != msg.sender) revert NotAPlayer();
 
+        _cleanup();
+
         // use case #1: only one player entered the round
         if (_players.length == 1) {
-            bettingToken.safeTransfer(_players[0].addr, bettingAmount);
             emit RoundCancelled(_players[0].addr, address(0));
+            bettingToken.safeTransfer(_players[0].addr, bettingAmount);
         } else {
             // use case #2: both entered the round, only one player revealed their bet
             // that player must already reveal their bet in order to withdraw
             if (revealedBet.addr != player.addr) revert CheatingDetected();
-            bettingToken.safeTransfer(player.addr, bettingAmount * 2);
             
             emit RoundCancelled(_players[0].addr, _players[1].addr);
+            bettingToken.safeTransfer(player.addr, bettingAmount * 2);
         }
- 
-        _cleanup();
     }
 
     /// @dev Wipes out players' info, their bets and resets timestamp.

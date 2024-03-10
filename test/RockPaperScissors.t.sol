@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {Test, console2} from "forge-std/Test.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
-import {RockPaperScissors, Bet } from "../src/RockPaperScissors.sol";
+import {RockPaperScissors, Bet } from "../contracts/RockPaperScissors.sol";
 
 contract RockPaperScissorsTest is Test {
     address constant PLAYER_1 = address(0x1234);

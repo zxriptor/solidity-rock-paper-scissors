@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {Test, console2} from "forge-std/Test.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
-import {RockPaperScissors, Bet } from "../contracts/RockPaperScissors.sol";
+import {RockPaperScissors, Bet} from "../contracts/RockPaperScissors.sol";
 
 contract RockPaperScissorsTest is Test {
     address constant PLAYER_1 = address(0x1234);
@@ -13,7 +13,7 @@ contract RockPaperScissorsTest is Test {
     uint256 constant BETTING_AMOUNT = 10 ether;
     uint256 constant ROUND_TIMEOUT = 1 days;
 
-    // see a setUp() how results are initialized 
+    // see a setUp() how results are initialized
     mapping(Bet => mapping(Bet => uint256)) private outcomes;
 
     // we don't care if a `salt` is not random and the same for both users,
@@ -63,11 +63,11 @@ contract RockPaperScissorsTest is Test {
         assertEq(rps.roundTimeout(), ROUND_TIMEOUT, "roundTimeout not set");
     }
 
-    /// note: Foundry can't deal with enums so we have to use uint256 as an input type for fuzzer 
+    /// note: Foundry can't deal with enums so we have to use uint256 as an input type for fuzzer
     function test_winnerDeterminationLogic(uint256 ubet1, uint256 ubet2) public {
         vm.assume(uint256(ubet1) < 3 && uint256(ubet2) < 3);
 
-        (uint256 idx, ) = _runRound(Bet(ubet1), Bet(ubet2));
+        (uint256 idx,) = _runRound(Bet(ubet1), Bet(ubet2));
         assertEq(idx, outcomes[Bet(ubet1)][Bet(ubet2)], "outcome fail");
     }
 
@@ -81,8 +81,9 @@ contract RockPaperScissorsTest is Test {
         uint256 balance1 = token.balanceOf(PLAYER_1);
         uint256 balance2 = token.balanceOf(PLAYER_2);
 
-        /** placing bets */
-
+        /**
+         * placing bets
+         */
         vm.expectEmit();
         emit BetPlaced(PLAYER_1, _hash(bet1, SALT));
 
@@ -103,7 +104,7 @@ contract RockPaperScissorsTest is Test {
         // player 1 cannot place duplicate bet
         vm.prank(PLAYER_1);
         vm.expectRevert(RockPaperScissors.Duplicate.selector);
-        rps.placeBet(_hash(Bet.Rock, SALT));     
+        rps.placeBet(_hash(Bet.Rock, SALT));
 
         // cannot reveal bet if a second player did not place the bet yet
         vm.expectRevert(RockPaperScissors.AwaitingBets.selector);
@@ -133,7 +134,7 @@ contract RockPaperScissorsTest is Test {
         // player 3 cannot place bet (BettingDone error is expected)
         vm.prank(address(0x0101));
         vm.expectRevert(RockPaperScissors.BettingDone.selector);
-        rps.placeBet(_hash(Bet.Rock, SALT));  
+        rps.placeBet(_hash(Bet.Rock, SALT));
 
         // last action timestamp needs to be recorded
         assertEq(rps.lastTimestamp(), block.timestamp, "lastTimestamp is not set");
@@ -141,7 +142,9 @@ contract RockPaperScissorsTest is Test {
         // contract's token balance must be correct
         assertEq(token.balanceOf(address(rps)), BETTING_AMOUNT * 2, "contract balance is incorrect");
 
-        /** revealing bets */
+        /**
+         * revealing bets
+         */
 
         // move timestamp for testing purposes
         vm.warp(10);
@@ -151,7 +154,7 @@ contract RockPaperScissorsTest is Test {
         vm.expectRevert(RockPaperScissors.NotAPlayer.selector);
         rps.revealBet(bet1, SALT);
 
-        // cannot cheat and put not matching bet during reveal 
+        // cannot cheat and put not matching bet during reveal
         vm.prank(PLAYER_1);
         vm.expectRevert(RockPaperScissors.CheatingDetected.selector);
         rps.revealBet(bet1 == Bet.Rock ? Bet.Paper : Bet.Rock, SALT);
@@ -196,7 +199,9 @@ contract RockPaperScissorsTest is Test {
         rps.revealBet(bet2r, SALT);
         vm.stopPrank();
 
-        /** after both players revealed, the round is done */
+        /**
+         * after both players revealed, the round is done
+         */
 
         // state must be cleaned up
         (addr, bet) = rps.revealedBet();
@@ -309,7 +314,7 @@ contract RockPaperScissorsTest is Test {
 
         vm.prank(PLAYER_2);
         vm.expectRevert(RockPaperScissors.TooEarly.selector);
-        rps.withdraw();       
+        rps.withdraw();
 
         vm.warp(ROUND_TIMEOUT * 2 + 1); // moving timestamp over round timeout more
 
@@ -341,7 +346,7 @@ contract RockPaperScissorsTest is Test {
 
         bytes32 salt1 = bytes32(keccak256(abi.encodePacked(block.timestamp)));
         bytes32 salt2 = bytes32(keccak256(abi.encodePacked(block.timestamp + 1)));
-        
+
         vm.prank(PLAYER_1);
         rps.placeBet(_hash(player1Bet, salt1));
 
@@ -352,7 +357,7 @@ contract RockPaperScissorsTest is Test {
         rps.revealBet(player1Bet, salt1);
 
         vm.prank(PLAYER_2);
-        rps.revealBet(player2Bet, salt2);       
+        rps.revealBet(player2Bet, salt2);
 
         // determine winner based on the balance increase
         if (token.balanceOf(PLAYER_1) > balance1) {

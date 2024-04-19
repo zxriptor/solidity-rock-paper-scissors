@@ -27,7 +27,7 @@ contract RockPaperScissors {
     error CheatingDetected();
     error TooEarly();
 
-    /// @notice A data struct to track the player address and their bet (hash). 
+    /// @notice A data struct to track the player address and their bet (hash).
     struct Player {
         address addr; // Player's address
         bytes32 betHash; // Hash of player's bet
@@ -69,11 +69,11 @@ contract RockPaperScissors {
         if (players.length == 2) revert BettingDone();
         if (players.length == 1 && players[0].addr == msg.sender) revert Duplicate();
 
-        Player memory player = Player({ addr: msg.sender, betHash: betHash });
+        Player memory player = Player({addr: msg.sender, betHash: betHash});
         players.push(player);
 
         lastTimestamp = block.timestamp;
-        
+
         emit BetPlaced(msg.sender, betHash);
         bettingToken.safeTransferFrom(msg.sender, address(this), bettingAmount);
     }
@@ -138,7 +138,7 @@ contract RockPaperScissors {
         if (lastTimestamp == 0 || block.timestamp < lastTimestamp + roundTimeout) revert TooEarly();
 
         Player[] memory _players = players;
-        (Player memory player, ) = _findPlayer(msg.sender, _players);
+        (Player memory player,) = _findPlayer(msg.sender, _players);
         if (player.addr != msg.sender) revert NotAPlayer();
 
         _cleanup();
@@ -151,14 +151,14 @@ contract RockPaperScissors {
             // use case #2: both entered the round, only one player revealed their bet
             // that player must already reveal their bet in order to withdraw
             if (revealedBet.addr != player.addr) revert CheatingDetected();
-            
+
             emit RoundCancelled(_players[0].addr, _players[1].addr);
             bettingToken.safeTransfer(player.addr, bettingAmount * 2);
         }
     }
 
     /// @dev Wipes out players' info, their bets and resets timestamp.
-    /// Must be called once game round is over. 
+    /// Must be called once game round is over.
     function _cleanup() private {
         delete players;
         delete revealedBet;
@@ -170,16 +170,10 @@ contract RockPaperScissors {
     /// @param players_ A players array to search within.
     /// @return player Player struct, if found. It is important to check if player.addr == addr before use.
     /// @return index zero-based index of player in players array. May be out of bounds if match not found.
-    function _findPlayer(
-        address addr,
-        Player[] memory players_
-    )
+    function _findPlayer(address addr, Player[] memory players_)
         private
-        pure 
-        returns (
-            Player memory player,
-            uint256 index
-        )
+        pure
+        returns (Player memory player, uint256 index)
     {
         while (index < players_.length) {
             if (players_[index].addr == addr) {
@@ -191,7 +185,7 @@ contract RockPaperScissors {
         }
     }
 
-    /// @dev A helper function to calculate hash. 
+    /// @dev A helper function to calculate hash.
     function _checkHash(Bet bet, bytes32 salt, bytes32 hash) private pure returns (bool) {
         return keccak256(abi.encode(bet, salt)) == hash;
     }
@@ -200,10 +194,10 @@ contract RockPaperScissors {
     /// @param bet1 1st player's bet.
     /// @param bet2 2nd player's bet.
     /// @return isDraw `True` if both bets are the same.
-    /// @return winner Ordinal (1-based) number of the winner, or zero if a draw. 
+    /// @return winner Ordinal (1-based) number of the winner, or zero if a draw.
     function _determineWinner(Bet bet1, Bet bet2) private pure returns (bool isDraw, uint256 winner) {
         isDraw = bet1 == bet2;
-       
+
         if (!isDraw) {
             if (bet1 == Bet.Rock) winner = bet2 == Bet.Paper ? 2 : 1;
             if (bet1 == Bet.Paper) winner = bet2 == Bet.Scissors ? 2 : 1;
